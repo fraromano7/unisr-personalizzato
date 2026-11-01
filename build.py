@@ -27,13 +27,23 @@ FALLBACK_URL = (
     "unisr-calendar/main/italiano-sezione3-viola-2anno.ics"
 )
 
-# L'utente può cambiare i colori nell'app Calendario di Apple.
+# Colori consigliati; Apple consente anche di cambiarli manualmente.
 DEFAULT_SUBJECTS = {
-    "Morfologia Umana": "#22A45A",  # verde
-    "Istologia": "#9B59B6",         # viola
-    "Fisiologia": "#3578DC",        # blu
-    "Genetica Medica": "#E38F25",  # arancione
-    "Semeiotica": "#DF5966",        # rosso
+    "Istologia": "#9655C8",   # viola
+    "Anatomia": "#D83B3B",   # rosso
+    "Genetica": "#2FA856",   # verde
+    "Semeiotica": "#E6B800", # giallo
+    "Fisiologia": "#43A6DE", # azzurro
+    "Burnout": "#E38F25",    # arancione
+}
+SUBJECT_ALIASES = {
+    "morfologia umana": "Anatomia",
+    "anatomia": "Anatomia",
+    "istologia": "Istologia",
+    "genetica medica": "Genetica",
+    "genetica": "Genetica",
+    "semeiotica": "Semeiotica",
+    "fisiologia": "Fisiologia",
 }
 OTHER_NAME = "Altri eventi"
 OTHER_COLOR = "#8291A8"
@@ -87,20 +97,24 @@ def escape_ical(text: str) -> str:
             .replace(",", r"\,").replace(";", r"\;"))
 
 
-def simplify_title(original: str) -> tuple[str, str]:
-    """Restituisce (materia, titolo breve). Evento non didattico -> 'Altri eventi'."""
+def simplify_title(original: str) -> tuple[str | None, str]:
+    """Cinque materie, solo elettivo Burnout, eventi non didattici in separata sede."""
     text = unescape_ical(original).strip()
+    if re.search(r"\bburn[\s-]?out\b", text, flags=re.I):
+        return "Burnout", "Burnout"
+    if re.search(r"elettiv|\bADE\b|opzional", text, flags=re.I):
+        return None, text
     lecture = re.match(r"^lezion[ei]\s*:\s*(.+)$", text, flags=re.I | re.S)
     if not lecture:
         return OTHER_NAME, text
     title = lecture.group(1)
-    # Rimuove solo qualificatori noti; l'aula e il docente restano nei campi ICS.
     title = re.sub(r"\s*\(\s*LINEA\s+[^)]*\)", "", title, flags=re.I)
     title = re.sub(r"\s*\(\s*docente\s*:\s*[^)]*\)", "", title, flags=re.I)
     title = re.sub(r"\s+", " ", title).strip(" -")
-    if not title:
-        return OTHER_NAME, text
-    return title, title
+    subject = SUBJECT_ALIASES.get(title.casefold())
+    if subject is None:
+        return None, title
+    return subject, subject
 
 
 def preserve_teacher(event: list[str], original_summary: str) -> list[str]:
@@ -183,10 +197,10 @@ def build_html(calendars: list[tuple[str, str, str, int]]) -> str:
 :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#172332;background:#f6f8fc}*{box-sizing:border-box}
 body{margin:0}main{max-width:920px;margin:0 auto;padding:40px 20px 72px}header{margin:0 0 28px}h1{letter-spacing:-.035em;font-size:clamp(30px,5vw,44px);margin:.2em 0}.lead{line-height:1.6;max-width:650px;color:#526279}h2{font-size:1.08rem;margin:0 0 5px}.tag{font-size:.8rem;text-transform:uppercase;letter-spacing:.13em;font-weight:750;color:#586b8c}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}.cal{background:#fff;border:1px solid #e5eaf1;border-radius:18px;padding:21px;box-shadow:0 3px 12px rgba(24,44,69,.03)}.row{display:flex;align-items:center;gap:12px;min-height:52px}.dot{background:var(--accent);width:16px;height:16px;flex:0 0 auto;border-radius:50%}.count{font-size:.82rem;color:#69768a}.subscribe{display:block;text-align:center;margin-top:23px;text-decoration:none;padding:12px;border-radius:10px;background:#1b55c4;color:white;font-weight:650;font-size:.92rem}.subscribe:hover{background:#13459f}footer{margin-top:25px;color:#5d6c81;font-size:.88rem;line-height:1.65}.note{margin-top:28px;background:#edf1f8;padding:17px;border-radius:12px}code{overflow-wrap:anywhere}
 </style></head><body><main><header><div class="tag">Medicina e Chirurgia 3 · 2º anno · Linea viola</div>
-<h1>Lezioni, finalmente leggibili.</h1><p class="lead">Titoli abbreviati, una materia per calendario e sincronizzazione automatica con il feed UniSR Calendar. Sottoscrivi ogni materia e assegna il colore indicato (o un altro) sul tuo iPhone.</p></header>
+<h1>Lezioni, finalmente leggibili.</h1><p class="lead">Titoli abbreviati e un calendario per materia. Gli orari sono letti direttamente dal sito pubblico UniSR. Tra i corsi elettivi è incluso soltanto Burnout. Sottoscrivi ogni materia e assegna il colore indicato (o un altro) sul tuo iPhone.</p></header>
 <div class="grid">''' + "".join(cards) + '''</div>
 <div class="note"><strong>Come si usa</strong><p>Da Safari su iPhone, tocca “Aggiungi ad Apple Calendario” per ogni materia. Dopo la sottoscrizione vai su <strong>Calendario → Calendari → ⓘ</strong> per impostare il colore di quella materia. Al termine nascondi o disiscriviti dal precedente calendario UniSR per evitare lezioni duplicate.</p><p>Se l'iPhone scarica un file invece di proporti una sottoscrizione, apri <strong>Calendario → Calendari → Aggiungi calendario → Aggiungi calendario con iscrizione</strong> e incolla l'indirizzo HTTPS del file, ricavabile aprendo il link nella pagina.</p></div>
-<footer><strong>Ultima generazione:</strong> ''' + html.escape(today) + ''' (ora italiana). Aggiornamenti richiesti da GitHub Actions ogni 4 ore; l'orario effettivo può slittare. La comparsa delle modifiche su Apple dipende anche dall'intervallo di aggiornamento impostato da Apple. Fonte: <a href="https://twentysecondproject.github.io/unisr-calendar/">UniSR Calendar</a> (progetto indipendente). Non è un servizio ufficiale UniSR. Per variazioni urgenti controlla sempre <a href="https://orario.unisr.it/default.asp">l'orario ufficiale</a>.<br>Gli eventi “Altri eventi” comprendono, per esempio, le sospensioni didattiche.</footer>
+<footer><strong>Ultima generazione:</strong> ''' + html.escape(today) + ''' (ora italiana). Aggiornamenti richiesti da GitHub Actions ogni 4 ore; l'orario effettivo può slittare. La comparsa delle modifiche su Apple dipende anche dall'intervallo di aggiornamento impostato da Apple. Fonte: <a href="https://orario.unisr.it/default.asp">portale orari UniSR</a>. Non è un servizio ufficiale UniSR. Per variazioni urgenti controlla sempre <a href="https://orario.unisr.it/default.asp">l'orario ufficiale</a>.<br>Gli eventi “Altri eventi” comprendono, per esempio, le sospensioni didattiche se riportate nella sorgente. Le lezioni non riconosciute vengono escluse.</footer>
 </main><script>
 for(const a of document.querySelectorAll('[data-calendar-file]')) {
   const u = new URL(a.dataset.calendarFile, location.href);
@@ -196,20 +210,9 @@ for(const a of document.querySelectorAll('[data-calendar-file]')) {
 
 
 def fetch_source() -> str:
-    errors = []
-    for url in (SOURCE_URL, FALLBACK_URL):
-        try:
-            req = Request(url, headers={"User-Agent": "UniSR-personalizzato/1.0", "Accept": "text/calendar,*/*"})
-            with urlopen(req, timeout=30) as r:
-                data = r.read(3_000_000)
-            text = data.decode("utf-8-sig")
-            if "BEGIN:VCALENDAR" not in text or "BEGIN:VEVENT" not in text:
-                raise ValueError("Risposta non riconosciuta come ICS")
-            print("Origine:", url)
-            return text
-        except (URLError, TimeoutError, ValueError, OSError) as exc:
-            errors.append(f"{url}: {exc}")
-    raise RuntimeError("Impossibile scaricare il calendario di origine:\n" + "\n".join(errors))
+    raise RuntimeError("Il servizio UniSR Calendar non è più attivo. "
+                       "Esegui prima: python orario.py --output raw.ics; "
+                       "poi: python build.py --input raw.ics --output public")
 
 
 def generate(raw: str, directory: Path) -> list[tuple[str, str, str, int]]:
@@ -218,6 +221,9 @@ def generate(raw: str, directory: Path) -> list[tuple[str, str, str, int]]:
     for event in events:
         idx, prop_name, raw_title = get_summary(event)
         subject, short_title = simplify_title(raw_title)
+        if subject is None:
+            print('Escluso:', unescape_ical(raw_title))
+            continue
         edited = event.copy()
         edited[idx] = prop_name + ":" + escape_ical(short_title)
         if subject != OTHER_NAME:
@@ -226,7 +232,7 @@ def generate(raw: str, directory: Path) -> list[tuple[str, str, str, int]]:
     directory.mkdir(parents=True, exist_ok=True)
     for old in directory.glob("*.ics"):
         old.unlink()
-    names = list(DEFAULT_SUBJECTS) + sorted(set(grouped) - set(DEFAULT_SUBJECTS) - {OTHER_NAME}) + [OTHER_NAME]
+    names = list(DEFAULT_SUBJECTS) + [OTHER_NAME]
     calendars: list[tuple[str, str, str, int]] = []
     used_slugs = set()
     for name in names:
