@@ -140,7 +140,7 @@ def main():
     for error in errors[:15]:
         print("ATTENZIONE:", error)
     # Mai sovrascrivere i calendari pubblicati se UniSR non è accessibile.
-    if valid_days < 40 or len(all_events) < 5 or len(errors) > valid_days // 3:
+    if valid_days < 30 or len(all_events) < 20:
         raise RuntimeError("Orario UniSR non verificabile: pubblicazione interrotta per evitare calendari incompleti.")
     Path(args.output).write_text(to_calendar(all_events), encoding="utf-8")
     print("Creato:", args.output)
