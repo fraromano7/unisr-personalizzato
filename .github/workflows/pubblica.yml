@@ -6,7 +6,7 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: "17 */4 * * *"
+    - cron: "17 6,18 * * *"
 
 permissions:
   contents: read
@@ -28,8 +28,14 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Genera calendari
-        run: python build.py --output public
+      - name: Installa dipendenze
+        run: python -m pip install requests beautifulsoup4
+
+      - name: Verifica orario dal portale UniSR
+        run: python orario.py --output raw.ics
+
+      - name: Genera calendari per materia
+        run: python build.py --input raw.ics --output public
 
       - name: Configura GitHub Pages
         uses: actions/configure-pages@v5
