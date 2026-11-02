@@ -14,7 +14,8 @@ import requests
 from bs4 import BeautifulSoup
 
 BASE = "https://orario.unisr.it/default.asp"
-COURSE_ID = "10324"  # Medicina e Chirurgia 3
+COURSE_ID = "10324"  # 2º anno, Medicina e Chirurgia 3, ordinamento 2009
+THIRD_YEAR_COURSE_ID = "10285"  # 3º anno, ordinamento 2024
 YEAR = "2"
 LINE = "VIOLA"
 
@@ -35,9 +36,9 @@ def ics_fold(line):
             chunk += char
     return pieces + [chunk]
 
-def request_params(day, course_year=YEAR):
+def request_params(day, course_year=YEAR, course_id=COURSE_ID):
     return {"ext": "ok", "data": day.strftime("%d/%m/%Y"),
-            "CDS_ID": COURSE_ID, "DAORA": "0", "ANNO_CORSO": course_year,
+            "CDS_ID": course_id, "DAORA": "0", "ANNO_CORSO": course_year,
             "id_palazzo": "0", "id_aula": "0", "lezioni": "ok"}
 
 def parse_day(html, day, burnout_only=False):
@@ -147,7 +148,7 @@ def main():
         # Ne importiamo esclusivamente le lezioni, senza gli altri corsi di quell'anno.
         if day <= date(2027, 1, 15):
             try:
-                response = session.get(BASE, params=request_params(day, "3"), timeout=25)
+                response = session.get(BASE, params=request_params(day, "3", THIRD_YEAR_COURSE_ID), timeout=25)
                 response.raise_for_status()
                 found = parse_day(response.text, day, burnout_only=True)
                 all_events.extend(found)
@@ -162,9 +163,9 @@ def main():
     }
     all_events = list(distinct.values())
     print(f"Giorni verificati: {valid_days}, errori: {len(errors)}, lezioni raccolte: {len(all_events)}")
-    print(f"Elettivo Burnout: {burnout_count} lezioni trovate su {burnout_checked} giornate verificate (anno 3)")
+    print(f"Elettivo Burnout: {burnout_count} lezioni trovate su {burnout_checked} giornate verificate (anno 3, ordinamento 2024)")
     if burnout_count == 0:
-        print("AVVISO: Burnout non trovato nelle date del portale; nessuna lezione fittizia verrà aggiunta.")
+        print("AVVISO: Burnout non pubblicato nel calendario aule. Corso 1396 censito nel catalogo UniSR; senza date ufficiali il file rimane vuoto.")
     for error in errors[:15]:
         print("ATTENZIONE:", error)
     # Mai sovrascrivere i calendari pubblicati se UniSR non è accessibile.
