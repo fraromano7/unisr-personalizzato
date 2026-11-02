@@ -166,7 +166,7 @@ def render_ics(events: list[list[str]], zones: list[list[str]], name: str, color
         "CALSCALE:GREGORIAN",
         "METHOD:PUBLISH",
         "X-WR-CALNAME:" + escape_ical("UniSR · " + name),
-        "X-WR-CALDESC:Calendario non ufficiale derivato dal feed pubblico UniSR Calendar",
+        "X-WR-CALDESC:Calendario non ufficiale ricavato dal portale orari UniSR",
         "X-WR-TIMEZONE:Europe/Rome",
         "X-APPLE-CALENDAR-COLOR:" + color,
     ]
@@ -183,11 +183,17 @@ def build_html(calendars: list[tuple[str, str, str, int]]) -> str:
     for title, file, color, count in calendars:
         ctitle = html.escape(title)
         cfile = html.escape(file, quote=True)
+        if title == "Burnout" and count == 0:
+            status = "Orari non pubblicati nel calendario aule UniSR"
+            action = "Sottoscrivi per i futuri aggiornamenti"
+        else:
+            status = f"{count} eventi nell'ultimo aggiornamento"
+            action = "Aggiungi ad Apple Calendario"
         cards.append(f'''
         <article class="cal" style="--accent:{color}">
           <div class="row"><span class="dot" aria-hidden="true"></span>
-            <div><h2>{ctitle}</h2><span class="count">{count} eventi nell'ultimo aggiornamento</span></div></div>
-          <a class="subscribe" data-calendar-file="{cfile}" href="{cfile}">Aggiungi ad Apple Calendario ↗</a>
+            <div><h2>{ctitle}</h2><span class="count">{status}</span></div></div>
+          <a class="subscribe" data-calendar-file="{cfile}" href="{cfile}">{action} ↗</a>
         </article>''')
     today = datetime.now(ZoneInfo("Europe/Rome")).strftime("%d/%m/%Y %H:%M")
     return '''<!doctype html>
@@ -200,7 +206,7 @@ body{margin:0}main{max-width:920px;margin:0 auto;padding:40px 20px 72px}header{m
 <h1>Lezioni, finalmente leggibili.</h1><p class="lead">Titoli abbreviati e un calendario per materia. Gli orari sono letti direttamente dal sito pubblico UniSR. Tra i corsi elettivi è incluso soltanto Burnout. Sottoscrivi ogni materia e assegna il colore indicato (o un altro) sul tuo iPhone.</p></header>
 <div class="grid">''' + "".join(cards) + '''</div>
 <div class="note"><strong>Come si usa</strong><p>Da Safari su iPhone, tocca “Aggiungi ad Apple Calendario” per ogni materia. Dopo la sottoscrizione vai su <strong>Calendario → Calendari → ⓘ</strong> per impostare il colore di quella materia. Al termine nascondi o disiscriviti dal precedente calendario UniSR per evitare lezioni duplicate.</p><p>Se l'iPhone scarica un file invece di proporti una sottoscrizione, apri <strong>Calendario → Calendari → Aggiungi calendario → Aggiungi calendario con iscrizione</strong> e incolla l'indirizzo HTTPS del file, ricavabile aprendo il link nella pagina.</p></div>
-<footer><strong>Ultima generazione:</strong> ''' + html.escape(today) + ''' (ora italiana). Aggiornamenti richiesti da GitHub Actions ogni 4 ore; l'orario effettivo può slittare. La comparsa delle modifiche su Apple dipende anche dall'intervallo di aggiornamento impostato da Apple. Fonte: <a href="https://orario.unisr.it/default.asp">portale orari UniSR</a>. Non è un servizio ufficiale UniSR. Per variazioni urgenti controlla sempre <a href="https://orario.unisr.it/default.asp">l'orario ufficiale</a>.<br>Gli eventi “Altri eventi” comprendono, per esempio, le sospensioni didattiche se riportate nella sorgente. Le lezioni non riconosciute vengono escluse.</footer>
+<footer><strong>Ultima generazione:</strong> ''' + html.escape(today) + ''' (ora italiana). Aggiornamenti richiesti da GitHub Actions ogni 6 ore; l'orario effettivo può slittare. La comparsa delle modifiche su Apple dipende anche dall'intervallo di aggiornamento impostato da Apple. Fonte: <a href="https://orario.unisr.it/default.asp">portale orari UniSR</a>. Non è un servizio ufficiale UniSR. Per variazioni urgenti controlla sempre <a href="https://orario.unisr.it/default.asp">l'orario ufficiale</a>.<br>Burnout è un corso ufficiale UniSR (codice 1396), ma potrebbe non avere ancora orari pubblicati nel calendario aule. La sua sottoscrizione rimarrà vuota finché UniSR non pubblicherà le lezioni. Le lezioni non riconosciute vengono escluse.</footer>
 </main><script>
 for(const a of document.querySelectorAll('[data-calendar-file]')) {
   const u = new URL(a.dataset.calendarFile, location.href);
