@@ -1,44 +1,28 @@
-# UniSR · Calendario personalizzato (2° anno, sezione 3, linea viola)
+# UniSR · Calendario personalizzato — Medicina 3, 2° anno, linea viola
 
-Crea automaticamente calendari `.ics` separati per **Morfologia Umana, Istologia, Fisiologia, Genetica Medica, Semeiotica e altri eventi**, partendo dal calendario pubblico [UniSR Calendar](https://twentysecondproject.github.io/unisr-calendar/). Ogni titolo in Apple Calendario inizia direttamente con il nome della materia, senza «Lezione:», «LINEA VIOLA» o il nome del docente (il docente viene spostato nelle note; aula e orari restano nei singoli eventi). Se compaiono nuove materie, vengono creati automaticamente nuovi calendari, da sottoscrivere una volta. I colori sono suggeriti, ma **vanno impostati sul dispositivo Apple**.
+Questo progetto pubblica calendari iCalendar separati per **Istologia (viola), Anatomia (rosso), Genetica (verde), Semeiotica (giallo), Fisiologia (azzurro)** e **Burnout (arancione)**. I titoli sono abbreviati e non iniziano con «Lezione:». Il docente viene riportato nelle note.
 
-## Pubblicare con GitHub (configurazione iniziale)
+## Stato di Burnout
 
-1. Accedi a [GitHub](https://github.com/) e crea un **repository pubblico** chiamato `unisr-personalizzato`, selezionando **Add a README = NO** (repository inizialmente vuoto).
-2. Estrai il file ZIP in una cartella del computer. Apri il repository GitHub, scegli **uploading an existing file** e trascina i contenuti estratti, **inclusa la cartella `.github`**. Controlla che il file `.github/workflows/pubblica.yml` sia stato caricato. Salva con **Commit changes** sul ramo `main`.
-3. Vai in **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-4. Apri **Actions → Aggiorna calendari UniSR → Run workflow** e avvia. Attendi che compaia una spunta verde: nel registro dell'azione trovi il link del sito pubblicato, normalmente `https://TUO-USERNAME.github.io/unisr-personalizzato/`.
-5. Apri **quel sito con Safari su iPhone**, aggiungi le materie che ti interessano e per ciascuna assegna il colore in **Calendario → Calendari → ⓘ**. Poi nascondi o rimuovi la precedente sottoscrizione UniSR per evitare duplicati.
+L'elettivo **Burnout e stress lavoro correlato nella professione medica**, codice UniSR **1396**, figura nell'offerta formativa 2026/27 (primo semestre, 24 ore). Non sono però stati trovati suoi appuntamenti nel calendario aule pubblico nelle date 1° ottobre 2026 – 15 gennaio 2027, dopo aver controllato gli ordinamenti pubblicati per Medicina 1, 2 e 3, al secondo/terzo anno.
 
-### Come funziona l'aggiornamento
+Per non inventare date, `burnout.ics` è **vuoto finché UniSR non pubblica gli orari**. È possibile sottoscriverlo già ora: eventuali lezioni future compariranno con i successivi aggiornamenti se pubblicate nel filtro previsto. Se gli orari vengono comunicati in un'area riservata, occorre fornire l'elenco o uno screenshot per importarli correttamente.
 
-GitHub Actions tenta di recuperare il feed ogni **4 ore** (non è una garanzia sull'ora esatta di esecuzione); la visualizzazione delle modifiche dipende anche da Apple e dal momento in cui il servizio terzo aggiorna i suoi dati. Controlla sempre l'orario ufficiale per eventuali cambiamenti improvvisi. Per forzare una verifica manuale: **Actions → Aggiorna calendari UniSR → Run workflow**.
+## Come si usa su iPhone
 
-**Attenzione:** i repository pubblici e le GitHub Pages sono consultabili da chi conosce il link; gli orari nel feed sono già pubblici. Per account inattivi, GitHub può disabilitare i workflow programmati di un repository pubblico dopo un periodo di inattività: se gli aggiornamenti si fermano, controlla la scheda Actions.
+1. Apri **https://fraromano7.github.io/unisr-personalizzato/** con Safari.
+2. Seleziona «Aggiungi ad Apple Calendario» per ogni materia. **Sottoscrivi**, non importare un file statico.
+3. In Calendario → Calendari → ⓘ, modifica i colori per ogni sottoscrizione.
+4. Nascondi il vecchio calendario UniSR per evitare eventi doppi, soltanto dopo aver verificato gli eventi.
 
-### Problemi comuni
+## Aggiornamenti
 
-- **Non trovi le materie nella pagina:** il workflow potrebbe non essere ancora stato eseguito, oppure GitHub Pages non è configurato come `GitHub Actions`.
-- **La pagina GitHub risponde 404:** apri Actions e verifica l'esito della pubblicazione, poi ricarica il sito.
-- **iPhone scarica un file `.ics`:** non importarlo come calendario statico. Usa **Calendario → Calendari → Aggiungi calendario → Aggiungi calendario con iscrizione** e incolla l'URL HTTPS del file `.ics` sulla tua GitHub Pages.
-- **Vedi eventi doppi:** nascondi o rimuovi il precedente calendario in abbonamento, dopo aver verificato la nuova sottoscrizione.
-- **Mancano lezioni:** il sistema copia il feed terzo, che potrebbe essere incompleto o aggiornarsi in ritardo. Verifica l'orario ufficiale su https://orario.unisr.it/default.asp.
-- **Il colore non corrisponde:** modificalo nella schermata di dettaglio di ciascun calendario in Apple Calendario.
+GitHub Actions controlla il portale pubblico **https://orario.unisr.it/default.asp** ogni **sei ore** (fuso UTC, esecuzioni eventualmente ritardate). Il progetto ripubblica i file .ics con nomi invariati, così Apple può aggiornare le sottoscrizioni; i tempi di aggiornamento su iPhone dipendono anche dall'app Calendario.
 
-## Dati e struttura
+Il corso ordinario di secondo anno viene letto dal programma «Medicina e Chirurgia 3» con identificativo `10324`; l'elettivo Burnout viene cercato separatamente nel terzo anno dell'ordinamento 2024 (`10285`), senza importare altri elettivi. Se il portale non restituisce abbastanza date affidabili, la pubblicazione si interrompe anziché sostituire i calendari con file vuoti.
 
-Il file `build.py` usa soltanto la libreria standard di Python. Preserva UID, date, orari, luoghi e dettagli non modificati; abbrevia il campo `SUMMARY`, sposta il docente nel campo `DESCRIPTION` e smista gli eventi per nome. Gli altri eventi, incluse le sospensioni didattiche, vanno in `Altri eventi`.
+Per avviare manualmente: **Actions → Aggiorna calendari UniSR → Run workflow**. Il workflow pubblica il sito tramite GitHub Pages.
 
-Origine: [twentysecondproject/unisr-calendar](https://github.com/twentysecondproject/unisr-calendar), progetto indipendente. Questo kit non è approvato né gestito da UniSR e dipende dal feed originale.
+## Limiti
 
-### Test locale (facoltativo)
-
-```shell
-python build.py --input calendario-esempio.ics --output public
-```
-
-Oppure, con accesso a Internet:
-
-```shell
-python build.py --output public
-```
+Non è un progetto ufficiale UniSR. Controlla l'orario universitario per variazioni urgenti; la sottoscrizione non è una notifica in tempo reale. I file del repository e i calendari pubblicati sono accessibili pubblicamente.
