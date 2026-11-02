@@ -35,12 +35,12 @@ def ics_fold(line):
             chunk += char
     return pieces + [chunk]
 
-def request_params(day):
+def request_params(day, course_year=YEAR):
     return {"ext": "ok", "data": day.strftime("%d/%m/%Y"),
-            "CDS_ID": COURSE_ID, "DAORA": "0", "ANNO_CORSO": YEAR,
+            "CDS_ID": COURSE_ID, "DAORA": "0", "ANNO_CORSO": course_year,
             "id_palazzo": "0", "id_aula": "0", "lezioni": "ok"}
 
-def parse_day(html, day):
+def parse_day(html, day, burnout_only=False):
     soup = BeautifulSoup(html, "html.parser")
     visible = tidy(soup.get_text(" ", strip=True))
     # Non pubblicare eventi del giorno sbagliato se UniSR ignora i filtri.
@@ -59,7 +59,10 @@ def parse_day(html, day):
                 current_room = tidy(room.group(1)) + " Aula " + tidy(room.group(2))
                 if room.group(3):
                     current_room += " (" + tidy(room.group(3)) + ")"
-            if "Lezione:" not in row:
+            if burnout_only:
+                if "burnout" not in row.casefold():
+                    continue
+            elif "Lezione:" not in row:
                 continue
             cells = [tidy(c.get_text(" ", strip=True)) for c in tr.find_all(["td", "th"])]
             combined = " | ".join(c for c in cells if c)
@@ -71,6 +74,10 @@ def parse_day(html, day):
                 title = tidy(subject.group(1))
             else:
                 title = next((c for c in cells if c.lower().startswith("lezione:")), "")
+            if not title and burnout_only:
+                title = next((item for item in cells if "burnout" in item.casefold()), "")
+                if title:
+                    title = "Lezione: " + re.sub(r"^Lezione:\s*", "", title, flags=re.I)
             if not title:
                 continue
             line = re.search(r"\(\s*LINEA\s+([^)]+)\)", title, re.I)
@@ -78,7 +85,7 @@ def parse_day(html, day):
                 continue
             rows.append({"day": day, "start": times.group(1), "end": times.group(2),
                          "title": title, "room": current_room})
-    if not rows and "nessun risultato" not in visible.casefold():
+    if not burnout_only and not rows and "nessun risultato" not in visible.casefold():
         raise ValueError("nessuna lezione e messaggio 'Nessun risultato' assente")
     unique = {}
     for item in rows:
@@ -123,6 +130,7 @@ def main():
     session = requests.Session()
     session.headers.update({"User-Agent": "Mozilla/5.0 (compatible; UniSR-personalizzato/1.0)"})
     all_events, valid_days, errors = [], 0, []
+    burnout_count, burnout_checked = 0, 0
     for offset in range(-args.days_back, args.days_ahead + 1):
         day = today + timedelta(days=offset)
         if day.weekday() >= 5:
@@ -135,8 +143,28 @@ def main():
             valid_days += 1
         except (requests.RequestException, ValueError) as exc:
             errors.append(f"{day.isoformat()}: {exc}")
+        # L'elettivo ufficiale Burnout è classificato al 3° anno nel I semestre.
+        # Ne importiamo esclusivamente le lezioni, senza gli altri corsi di quell'anno.
+        if day <= date(2027, 1, 15):
+            try:
+                response = session.get(BASE, params=request_params(day, "3"), timeout=25)
+                response.raise_for_status()
+                found = parse_day(response.text, day, burnout_only=True)
+                all_events.extend(found)
+                burnout_count += len(found)
+                burnout_checked += 1
+            except (requests.RequestException, ValueError) as exc:
+                print(f"ATTENZIONE elettivo {day.isoformat()}: {exc}")
         time.sleep(0.18)
+    distinct = {
+        (e["day"], e["start"], e["end"], e["title"], e["room"]): e
+        for e in all_events
+    }
+    all_events = list(distinct.values())
     print(f"Giorni verificati: {valid_days}, errori: {len(errors)}, lezioni raccolte: {len(all_events)}")
+    print(f"Elettivo Burnout: {burnout_count} lezioni trovate su {burnout_checked} giornate verificate (anno 3)")
+    if burnout_count == 0:
+        print("AVVISO: Burnout non trovato nelle date del portale; nessuna lezione fittizia verrà aggiunta.")
     for error in errors[:15]:
         print("ATTENZIONE:", error)
     # Mai sovrascrivere i calendari pubblicati se UniSR non è accessibile.
