@@ -13,7 +13,7 @@ def request(day,course,year):
     return {"ext":"ok","data":day.strftime("%d/%m/%Y"),"CDS_ID":course,
             "DAORA":"0","ANNO_CORSO":year,"id_palazzo":"0",
             "id_aula":"0","lezioni":"ok"}
-for cid,yr in [("10285","2"),("10285","3"),("10324","2")]:
+for cid,yr in [("10115","3"),("10311","3"),("10325","3"),("10284","3")]:
     hits,displayed,errors,examples=[],0,0,[]
     print("START",cid,yr,"DAYS",len(days),flush=True)
     for d in days:
